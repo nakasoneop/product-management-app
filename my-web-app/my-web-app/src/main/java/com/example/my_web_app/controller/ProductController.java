@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import com.example.my_web_app.ProductNotFoundException;
+import com.example.my_web_app.exception.ProductNotFoundException;
 import com.example.my_web_app.model.Product;
 import com.example.my_web_app.service.ProductService;
 

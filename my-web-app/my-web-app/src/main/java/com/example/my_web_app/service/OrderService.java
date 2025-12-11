@@ -6,7 +6,7 @@ import jakarta.transaction.Transactional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.example.my_web_app.ProductNotFoundException;
+import com.example.my_web_app.exception.ProductNotFoundException;
 import com.example.my_web_app.model.Order;
 import com.example.my_web_app.model.Product;
 import com.example.my_web_app.repository.OrderRepository;
