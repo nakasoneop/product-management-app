@@ -88,10 +88,11 @@ public class ProductController {
     public ResponseEntity<Product> updateProduct(
     		@PathVariable Long id,
     		@RequestPart("productDetails") Product productDetails,
-    		@RequestPart(value = "imageFile", required = false) MultipartFile imageFile) {
+    		@RequestPart(value = "imageFile", required = false) MultipartFile imageFile) throws IOException {
 
     	try {
             Product updatedProduct = productService.updateProductWithImage(id, productDetails, imageFile);
+            // 更新成功の場合、HTTP 200 OK と更新後の商品を返す
             return ResponseEntity.ok(updatedProduct);
 
         } catch (IOException e) {
