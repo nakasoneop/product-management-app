@@ -7,7 +7,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import com.example.my_web_app.exception.ProductNotFoundException;
+import com.example.my_web_app.mapper.ProductMapper;
 import com.example.my_web_app.model.Product;
+import com.example.my_web_app.model.ProductRequest;
 import com.example.my_web_app.service.ProductService;
 
 import java.io.IOException;
@@ -16,8 +18,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-@RestController // コントローラー層
-@RequestMapping("/api/products") // このコントローラーのベースパス
+import jakarta.validation.Valid;
+
+@RestController // コントローラー層 //データだけを返すときに使う。@ContollerはHTMLを返すときに使う。
+@RequestMapping("/api/products") // このコントローラーのベースパス。クラスの上に書いているのでベースパスになる
 //5173にはアクセスを許可
 @CrossOrigin(origins = "http://localhost:5173")
 public class ProductController {
@@ -25,6 +29,9 @@ public class ProductController {
     // インスタンス作成
     @Autowired
     private ProductService productService;
+
+    @Autowired
+    private ProductMapper productMapper;
 
     /**
      * 【GET】商品の一覧取得 または 名前による検索
@@ -46,7 +53,7 @@ public class ProductController {
     }
 
     //PathVariableパターン
-    //URL例: GET http://localhost:8080/api/products/1
+    //URL例: GET http://localhost:8080/api/products/1 //sprongbootではこっちが一般的
     @GetMapping("/{id}")
     public Optional<Product> getProductsById(@PathVariable Long id) {
             return productService.findProductsById(id);
@@ -87,12 +94,16 @@ public class ProductController {
     @PostMapping("/{id}/update")
     public ResponseEntity<Product> updateProduct(
     		@PathVariable Long id,
-    		@RequestPart("productDetails") Product productDetails,
+    		//バリデーションを行う場合は@Validをつける
+    		@Valid @RequestPart("productDetails") ProductRequest productRequest,
     		@RequestPart(value = "imageFile", required = false) MultipartFile imageFile) throws IOException {
 
     	try {
-            Product updatedProduct = productService.updateProductWithImage(id, productDetails, imageFile);
-            // 更新成功の場合、HTTP 200 OK と更新後の商品を返す
+    		Product productToUpdate = productMapper.toEntity(productRequest);
+
+            Product updatedProduct = productService.updateProductWithImage(id, productToUpdate, imageFile);
+            //更新成功の場合、HTTP 200 OK と更新後の商品を返す
+            //ResponseEntityで、HTTPステータスコードやヘッダーを含めたレスポンスを返すことができる
             return ResponseEntity.ok(updatedProduct);
 
         } catch (IOException e) {
