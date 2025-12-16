@@ -6,6 +6,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.example.my_web_app.exception.DuplicateProductNameException;
 import com.example.my_web_app.model.Product;
 import com.example.my_web_app.repository.ProductRepository;
 import com.example.my_web_app.service.ProductService;
@@ -13,6 +15,7 @@ import com.example.my_web_app.service.ProductService;
 import static org.junit.jupiter.api.Assertions.*; // アサーション（検証）メソッドをインポート
 import static org.mockito.Mockito.*; // Mockitoのメソッドをインポート
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,6 +27,63 @@ public class ProductServiceTest {
 
     @InjectMocks // 💡 テスト対象のクラス。@Mockで作成したインスタンスがここに自動注入される
     private ProductService productService;
+
+    @Test
+    void updateProduct_重複がない場合_更新が成功すること() throws IOException {
+        // 準備: テストで使うモックオブジェクトの振る舞いを設定
+        Long productId = 1L;
+        Product existingProduct = new Product("古い名前", 100, 10, null);
+        Product updatedDetails = new Product("新しい名前", 120, 10, null);
+
+        // 💡 モックの振る舞い設定 (When-Then)
+        // 1. findById は既存の商品を返す
+        when(productRepository.findById(productId)).thenReturn(Optional.of(existingProduct));
+        // 2. findByNameAndIdNot は重複なし（Optional.empty()）を返す
+        when(productRepository.findByNameAndIdNot("新しい名前", productId)).thenReturn(Optional.empty());
+        // 3. save は更新された商品を返す
+        when(productRepository.save(any(Product.class))).thenReturn(updatedDetails);
+
+        // 実行
+        Product result = productService.updateProductWithImage(productId, updatedDetails, null);
+
+        // 検証
+        // 例外がスローされないこと
+        //確認したいテスト対象コードブロックを書けばOK
+//        assertDoesNotThrow(() -> {
+//            // 例外がスローされる可能性のあるメソッド呼び出しをここに書く
+//            productService.updateProductWithImage(productId, updatedDetails, null);
+//        });
+        // saveメソッドが最終的に呼ばれたこと
+        verify(productRepository, times(1)).save(any(Product.class));
+        // 名前が更新されていること
+        assertEquals("新しい名前", result.getName());
+    }
+
+    @Test
+    void updateProduct_重複がある場合_例外をスローすること() throws IOException {
+        // 準備
+        Long productId = 1L;
+        Product existingProduct = new Product("元の名前", 100, 10, null);
+        Product updatedDetails = new Product("重複する名前", 120, 10, null);
+        Product conflictingProduct = new Product("重複する名前", 50, 5, null); // IDが異なる商品
+
+        // 💡 モックの振る舞い設定
+        // 1. findById は既存の商品を返す
+        when(productRepository.findById(productId)).thenReturn(Optional.of(existingProduct));
+        // 2. findByNameAndIdNot は重複あり（conflictingProduct）を返す
+        when(productRepository.findByNameAndIdNot("重複する名前", productId)).thenReturn(Optional.of(conflictingProduct));
+
+        // 実行と検証 (assertThrows)
+        // DuplicateProductNameExceptionがスローされることを確認
+        // 第1引数に例外クラス情報、第2引数にテスト対象のコードブロック
+        assertThrows(DuplicateProductNameException.class, () -> {
+            productService.updateProductWithImage(productId, updatedDetails, null);
+        });
+
+        // 検証
+        // saveメソッドは呼ばれていないこと (重要)
+        verify(productRepository, never()).save(any(Product.class));
+    }
 
 //	private Product testProduct;
 

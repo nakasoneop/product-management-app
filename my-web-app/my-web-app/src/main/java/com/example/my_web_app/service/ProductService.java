@@ -4,7 +4,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.example.my_web_app.ProductNotFoundException;
+import com.example.my_web_app.exception.DuplicateProductNameException;
+import com.example.my_web_app.exception.ProductNotFoundException;
 import com.example.my_web_app.model.Product;
 import com.example.my_web_app.repository.ProductRepository;
 
@@ -77,13 +78,25 @@ public class ProductService {
 	    }
 	    // 💡 ファイルが提供されなかった場合、imageUrlは更新しない（既存の値を保持）
 
-	    // 2. 他のデータの上書き
+	    // 他のデータの上書き
 	    product.setName(productDetails.getName());
 	    product.setPrice(productDetails.getPrice());
 	    product.setStock(productDetails.getStock());
 	    product.setDescription(productDetails.getDescription());
 	    // imageUrl は上記で更新済み
 
+	    // 更新後の商品名と、更新対象の商品ID（自身）を使って重複チェックを実行
+	    Optional<Product> duplicate = productRepository.findByNameAndIdNot(
+	            product.getName(), // 新しく設定された名前
+	            id // 更新対象の商品ID
+	        );
+
+	    // もし自分以外のIDを持つ商品が、同じ名前で存在したら例外をスロー
+	    if (duplicate.isPresent()) {
+	        throw new DuplicateProductNameException("商品名 '" + product.getName() + "' は既に使用されています。");
+	    }
+
+	     // 4. DBへ保存
 	    return productRepository.save(product);
 	}
 
